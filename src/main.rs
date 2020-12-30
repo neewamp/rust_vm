@@ -1,4 +1,4 @@
-// Starting to implement bytecode virtual machine
+// Starting to implement stack based virtual machine
 // Learning rust at the same time
 
 use std::fmt::Debug;
@@ -6,6 +6,7 @@ use std::ops::Add;
 use std::ops::Sub;
 
 const STACK_CAPACITY : usize = 128;
+const INSTR_CAPACITY : usize = 1024;
 
 #[derive(Debug, Clone, Copy)]
 enum Instr<T> {
@@ -20,7 +21,10 @@ type Prog<T> = Vec<Instr<T>>;
 #[derive(Debug)]
 struct Vm<'a, T> {
     stack_size : &'a mut usize,
-    stack : &'a mut [T; STACK_CAPACITY]
+    stack : &'a mut [T; STACK_CAPACITY],
+    prog : Vec<Instr<T>>,
+    ip : i64
+	
 }
 
 #[macro_export]
@@ -125,7 +129,7 @@ fn trace_prog<T : Sized + Debug + Copy + Add<Output = T> + Sub<Output = T>>(vm :
     for (i, instr) in p.iter().enumerate() {
 	let code = vm_execute(vm, instr);
 	println!("{}^th State size({}) code({:?}):\n{:?}",
-		 i, vm.stack_size, code, &vm.stack[0..*vm.stack_size],
+		 i, vm.stack_size, code, &vm.stack[0..*vm.stack_size].to_vec(),
 	);
     }
 }
@@ -134,11 +138,13 @@ fn main() {
     let prog : &Prog<i32> =
 	&vec!(VmPush!(1), VmPush!(2), VmPlus!(),
 	      VmPush!(1), VmPlus!(),
-	      VmPush!(22), VmPop!(), VmPop!(), VmPop!()
+	      VmPush!(22), VmMinus!(), VmPop!(), VmPop!(), VmPop!()
 	);
     let mut vm : Vm<i32> = Vm {
 	stack_size : &mut 0,
-	stack : &mut [0; STACK_CAPACITY]
+	stack : &mut [0; STACK_CAPACITY],
+	prog : prog.to_vec(),
+	ip : 0
     };
 
     trace_prog(&mut vm, prog);
